@@ -6,9 +6,9 @@ using UnityEngine;
 [Serializable]
 public class Rogram
 {
-    public RogramOp[] ops = new RogramOp[0];
+    public IRogramOp[] ops = new IRogramOp[0];
 
-    public Rogram(RogramOp[] ops)
+    public Rogram(IRogramOp[] ops)
     {
         this.ops = ops;
     }

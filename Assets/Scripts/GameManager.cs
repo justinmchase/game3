@@ -5,7 +5,7 @@ using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
-    public RoboCpu SelectedRobot;
+    public RobotBehavior SelectedRobot;
 
     // Start is called before the first frame update
     void Start()
@@ -21,12 +21,12 @@ public class GameManager : MonoBehaviour
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             var hits = Physics
                 .RaycastAll(ray)
-                .Select(h => h.transform.GetComponent<RoboCpu>())
-                .Where(cpu => cpu != null);
+                .Select(h => h.transform.GetComponentInParent<RobotBehavior>())
+                .Where(r => r != null);
 
             if (hits.Any())
             {
-                this.SelectedRobot = hits.First().transform.GetComponent<RoboCpu>();
+                this.SelectedRobot = hits.First();
             }
         }
     }

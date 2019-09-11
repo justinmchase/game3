@@ -27,8 +27,11 @@ public class ProgramUploader : MonoBehaviour
 
             var rogram = compiler.Compile(code);
 
-            Game.SelectedRobot.Load(rogram);
-
+            var cpu = Game.SelectedRobot.GetComponentInChildren<CpuBehavior>();
+            if (cpu != null)
+            {
+                cpu.Load(rogram);
+            }
         }
     }
 }
