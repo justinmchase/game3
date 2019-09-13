@@ -2,24 +2,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Text.RegularExpressions;
+using System.Linq;
+using System;
 
 
 // mov 1 m0
 // mov m0 legs
 
-enum ParseState
-{
-    OpName,
-    Arg,
-    Register,
-    Literal
-}
-
-
 public class RogramCompiler
 {
     private Regex NumberCharacter = new Regex("[0-9]");
     private Regex LetterCharacter = new Regex("[a-z]");
+    private Tokenizer tokenizer = new Tokenizer();
 
     public Rogram Compile(string code)
     {
@@ -28,91 +22,87 @@ public class RogramCompiler
         return new Rogram(ops.ToArray());
     }
 
+    enum State
+    {
+        Op,
+        Arg,
+        Comment,
+        Error,
+    }
+
     private void Parse(string code, List<IRogramOp> ops)
     {
-        var state = new Stack<ParseState>();
+        var tokens = this.tokenizer
+            .Tokenize(code)
+            .Where(t => t.Kind != TokenKind.Whitespace)
+            .ToArray();
 
-        state.Push(ParseState.OpName);
+        var state = new Stack<State>();
+
+        state.Push(State.Op);
         var name = "";
-        var value = "";
         var args = new List<IRogramOpArg>();
-        for (int i = 0, n = code.Length; i < n; i++)
+
+        for (int i = 0, n = tokens.Length; i < n; i++)
         {
-            var c = code[i];
+            var t = tokens[i];
             var s = state.Peek();
             switch (s)
             {
-                case ParseState.OpName:
-                    if (c == ' ')
+                case State.Op:
+                    if (t.Kind == TokenKind.Identifier)
                     {
-                        state.Push(ParseState.Arg);
+                        name = t.Value;
+                        state.Push(State.Arg);
+                    }
+                    else if (t.Kind == TokenKind.Special && t.Value == "#")
+                    {
+                        state.Push(State.Comment);
                     }
                     else
                     {
-                        name += c;
+                        state.Push(State.Error);
                     }
                     break;
-                case ParseState.Arg:
-                    if (this.LetterCharacter.IsMatch(c.ToString()))
+                case State.Comment:
+                    if (t.Kind == TokenKind.NewLine)
                     {
-                        state.Push(ParseState.Register);
-                        value += c;
-                    }
-                    else if (this.NumberCharacter.IsMatch(c.ToString()))
-                    {
-                        state.Push(ParseState.Literal);
-                        value += c;
+                        state.Pop();
                     }
                     break;
-                case ParseState.Register:
-                    if (this.LetterCharacter.IsMatch(c.ToString()))
+                case State.Arg:
+                    if (t.Kind == TokenKind.Identifier)
                     {
-                        value += c;
+                        args.Add(new RogramRegisterArg { Register = t.Value });
                     }
-                    else if (c == ' ')
+                    else if (t.Kind == TokenKind.Number)
                     {
-                        state.Pop();
-                        args.Add(new RogramRegisterArg { Register = value });
-                        value = "";
+                        args.Add(new RogramValueArg { Value = int.Parse(t.Value) });
                     }
-                    else if (c == '\n')
+                    else if (t.Kind == TokenKind.NewLine)
                     {
+                        ops.Add(this.ParseOp(name, args));
+                        args.Clear();
+                        name = "";
                         state.Pop();
+                    }
+                    else if (t.Kind == TokenKind.Special && t.Value == "#")
+                    {
+                        ops.Add(this.ParseOp(name, args));
+                        args.Clear();
+                        name = "";
                         state.Pop();
-                        args.Add(new RogramRegisterArg { Register = value });
-                        if (state.Peek() == ParseState.OpName)
-                        {
-                            ops.Add(this.ParseOp(name, args));
-                            name = "";
-                            args.Clear();
-                        }
-                        value = "";
+                        state.Push(State.Comment);
                     }
                     break;
-                case ParseState.Literal:
-                    if (this.NumberCharacter.IsMatch(c.ToString()))
-                    {
-                        value += c;
-                    }
-                    else if (c == ' ')
+                case State.Error:
+                    if (t.Kind == TokenKind.NewLine)
                     {
                         state.Pop();
-                        args.Add(new RogramValueArg { Value = int.Parse(value) });
-                        value = "";
+                        args.Clear();
+                        name = "";
                     }
-                    else if (c == '\n')
-                    {
-                        state.Pop();
-                        state.Pop();
-                        args.Add(new RogramValueArg { Value = int.Parse(value) });
-                        if (state.Peek() == ParseState.OpName)
-                        {
-                            ops.Add(this.ParseOp(name, args));
-                            name = "";
-                            args.Clear();
-                        }
-                        value = "";
-                    }
+                    // else skip for now...
                     break;
                 default:
                     Debug.Log("Invalid Program.");
@@ -122,12 +112,7 @@ public class RogramCompiler
 
         switch (state.Peek())
         {
-            case ParseState.Register:
-                args.Add(new RogramRegisterArg { Register = value });
-                ops.Add(this.ParseOp(name, args));
-                break;
-            case ParseState.Literal:
-                args.Add(new RogramValueArg { Value = int.Parse(value) });
+            case State.Arg:
                 ops.Add(this.ParseOp(name, args));
                 break;
         }
