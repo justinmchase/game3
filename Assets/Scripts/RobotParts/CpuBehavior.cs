@@ -10,10 +10,10 @@ using UnityEngine;
 // mov 0 led
 // wait 100
 
-public class CpuBehavior : MonoBehaviour
+public class CpuBehavior : MonoBehaviour, ITickable
 {
 
-    private float Wait = 0.0f;
+    private float Wait = 0;
 
     private Rogram rogram;
 
@@ -21,24 +21,30 @@ public class CpuBehavior : MonoBehaviour
 
     private Dictionary<string, Register> registers = new Dictionary<string, Register>();
 
-    private Material ledMaterial;
-
     private void Start()
     {
-        //this.ledMaterial = GameObject.Instantiate(this.GetComponent<MeshRenderer>().material);
-        
         this.AddRegister(new Register
         {
             Name = "led",
             Owner = this.GetComponent<RobotPart>(),
             Value = 0
         });
+
+        GameObject
+            .FindObjectOfType<GameManager>()
+            .Register(this);
     }
 
     // Update is called once per frame
-    void Update()
+    public void Tick()
     {
-        if (this.rogram != null && this.index < rogram.ops.Length && this.Wait <= 0.0f)
+        if (this.Wait > 0)
+        {
+            this.Wait--;
+            return;
+        }
+
+        if (this.rogram != null && this.index < rogram.ops.Length)
         {
             var op = rogram.ops[this.index];
             switch (op.Name)
@@ -47,7 +53,7 @@ public class CpuBehavior : MonoBehaviour
                     break;
                 case RogramOpName.wait:
                     var wait = (WaitOp)op;
-                    this.Wait = this.GetValue(wait.Time) / 1000.0f;
+                    this.Wait = this.GetValue(wait.Time);
                     break;
                 case RogramOpName.mov:
                     var mov = (MovOp)op;
@@ -62,12 +68,9 @@ public class CpuBehavior : MonoBehaviour
 
             this.index = (this.index + 1) % rogram.ops.Length;
         }
+    }
 
-        if (this.Wait >= 0.0f)
-        {
-            this.Wait -= Time.deltaTime;
-        }
-
+    public void Update() {
         var ledOff = this.registers["led"].Value == 0;
         var ledColor = ledOff ? Color.gray : Color.red;
         this.GetComponent<MeshRenderer>().material.color = ledColor;
