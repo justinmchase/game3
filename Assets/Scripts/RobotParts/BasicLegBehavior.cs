@@ -1,22 +1,24 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-public class BasicLegBehavior : MonoBehaviour, ITickable
+public class BasicLegBehavior : MonoBehaviour
 {
     const float STEP_SIZE = 2.0f;
 
     public int Speed;
 
     private GameManager game;
-    private Register register;
     private RobotBehavior robot;
+    private SubRoutine moveForward;
 
     /* MOVING */
-    private int steps;
-    private float stepTime;
-    private float elapsedTime;
+
+    private float worldSpeed = 0f;
     private Vector3 destination;
+
+    private Action MoveForwardCallback;
 
     private void Start()
     {
@@ -26,51 +28,48 @@ public class BasicLegBehavior : MonoBehaviour, ITickable
         var chassis = this.GetComponentInParent<ChassisBehavior>();
         var cpu = chassis.GetComponentInChildren<CpuBehavior>();
 
-        this.register = new Register
+        this.moveForward = new SubRoutine
         {
-            Name = "leg",
+            Name = "move_forward",
+            FullName = "leg.move_forward",
             Owner = this.GetComponent<RobotPart>(),
-            Value = 0
+            Fn = this.MoveForward
         };
-        cpu.AddRegister(this.register);
 
-        this.game.Register(this);
+        cpu.AddSubroutine(this.moveForward);
+
         this.destination = robot.transform.position;
+    }
+
+    private void MoveForward(int[] args, Action callback)
+    {
+        this.MoveForwardCallback = callback;
+        int dist = args.Length == 1 ? args[0] : 0;
+        this.destination = robot.transform.position + robot.transform.forward * STEP_SIZE * dist;
+        this.worldSpeed = this.TickSpeedToWorldSpeed(this.Speed);
     }
 
     private void Update()
     {
-        if (steps > 0)
+        if(this.worldSpeed < 0.0001f || this.MoveForwardCallback == null)
         {
-            this.elapsedTime += Time.deltaTime;
-            this.robot.transform.position = Vector3.Lerp(this.robot.transform.position, this.destination, elapsedTime / this.stepTime);
+            return;
         }
-        else
+
+        this.robot.transform.position = this.robot.transform.position + this.robot.transform.forward * this.worldSpeed * Time.deltaTime;
+        var dirToDest = this.destination - this.robot.transform.position;
+        var dot = Vector3.Dot(dirToDest, this.transform.forward);
+        if(dot < 0)
         {
             this.robot.transform.position = this.destination;
+            this.MoveForwardCallback();
+            this.MoveForwardCallback = null;
         }
     }
 
-    public void Tick()
+    private float TickSpeedToWorldSpeed(float tickSpeed)
     {
-        if (this.register != null && this.register.Value > 0 && this.steps == 0)
-        {
-            this.register.Value--;
-            this.steps = this.Speed;
-        }
-
-        if (this.steps > 0)
-        {
-            // How many steps are left
-            this.steps--;
-
-            // How much time a single step should take
-            this.stepTime = 1.0f / this.game.TicksPerSecond;
-
-            // How much time has elapsed taking this step
-            this.elapsedTime = 0.0f;
-
-            this.destination = robot.transform.position + robot.transform.forward * (STEP_SIZE / this.Speed);
-        }
+        return (1.0f / tickSpeed) * this.game.TicksPerSecond *  STEP_SIZE;
     }
+
 }

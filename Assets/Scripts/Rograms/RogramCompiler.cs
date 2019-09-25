@@ -13,6 +13,7 @@ public class RogramCompiler
 {
     private Regex NumberCharacter = new Regex("[0-9]");
     private Regex LetterCharacter = new Regex("[a-z]");
+    private Regex JoinCharacter = new Regex("[._]");
     private Tokenizer tokenizer = new Tokenizer();
 
     public Rogram Compile(string code)
@@ -26,6 +27,7 @@ public class RogramCompiler
     {
         Op,
         Arg,
+        Identifier,
         Comment,
         Error,
     }
@@ -41,6 +43,7 @@ public class RogramCompiler
 
         state.Push(State.Op);
         var name = "";
+        var identifier = "";
         var args = new List<IRogramOpArg>();
 
         for (int i = 0, n = tokens.Length; i < n; i++)
@@ -73,7 +76,8 @@ public class RogramCompiler
                 case State.Arg:
                     if (t.Kind == TokenKind.Identifier)
                     {
-                        args.Add(new RogramRegisterArg { Register = t.Value });
+                        identifier = t.Value;
+                        state.Push(State.Identifier);
                     }
                     else if (t.Kind == TokenKind.Number)
                     {
@@ -95,12 +99,47 @@ public class RogramCompiler
                         state.Push(State.Comment);
                     }
                     break;
+                case State.Identifier:
+                    if ((t.Kind == TokenKind.Special && this.JoinCharacter.IsMatch(t.Value)) || t.Kind == TokenKind.Identifier)
+                    {
+                        identifier += t.Value;
+                    }
+                    else if (t.Kind == TokenKind.NewLine)
+                    {
+                        args.Add(new RogramRegisterArg { Register = identifier });
+                        ops.Add(this.ParseOp(name, args));
+                        args.Clear();
+                        name = "";
+                        identifier = "";
+                        state.Pop();
+                        state.Pop();
+                    }
+                    else if (t.Kind == TokenKind.Special && t.Value == "#")
+                    {
+                        args.Add(new RogramRegisterArg { Register = identifier });
+                        ops.Add(this.ParseOp(name, args));
+                        args.Clear();
+                        name = "";
+                        identifier = "";
+                        state.Pop();
+                        state.Pop();
+                        state.Push(State.Comment);
+                    }
+                    else if (t.Kind == TokenKind.Number)
+                    {
+                        args.Add(new RogramRegisterArg { Register = identifier });
+                        args.Add(new RogramValueArg { Value = int.Parse(t.Value) });
+                        identifier = "";
+                        state.Pop();
+                    }
+                    break;
                 case State.Error:
                     if (t.Kind == TokenKind.NewLine)
                     {
                         state.Pop();
                         args.Clear();
                         name = "";
+                        identifier = "";
                     }
                     // else skip for now...
                     break;
@@ -113,6 +152,7 @@ public class RogramCompiler
         switch (state.Peek())
         {
             case State.Arg:
+            case State.Identifier:
                 ops.Add(this.ParseOp(name, args));
                 break;
         }
@@ -131,6 +171,12 @@ public class RogramCompiler
                 return new WaitOp
                 {
                     Time = args[0]
+                };
+            case "call":
+                return new CallOp
+                {
+                    Sub = (RogramRegisterArg)args[0],
+                    Args = args.Skip(1).ToArray()
                 };
             default:
                 Debug.Log($"Invalid op: {name}");

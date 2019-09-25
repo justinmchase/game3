@@ -7,6 +7,7 @@ public enum RogramOpName
     noop,
     wait,
     mov,
+    call,
     add,
     sub,
     mul,
@@ -35,4 +36,11 @@ public struct WaitOp : IRogramOp
 {
     public RogramOpName Name {  get { return RogramOpName.wait; } }
     public IRogramOpArg Time;
+}
+
+public struct CallOp : IRogramOp
+{
+    public RogramOpName Name {  get { return RogramOpName.call;  } }
+    public RogramRegisterArg Sub;
+    public IRogramOpArg[] Args;
 }

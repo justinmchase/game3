@@ -34,14 +34,7 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        if (TicksPerSecond > 100)
-        {
-            this.TicksPerSecond = 100;
-        }
-        if (TicksPerSecond < 1)
-        {
-            this.TicksPerSecond = 1;
-        }
+        this.TicksPerSecond = Mathf.Clamp(this.TicksPerSecond, 0, 100);
     }
 
     public void Register(ITickable tickable)
@@ -61,8 +54,6 @@ public class GameManager : MonoBehaviour
                 foreach (var tickable in this.tickables)
                 {
                     tickable.Tick();
-
-                    //yield return null;
                 }
             }
         }

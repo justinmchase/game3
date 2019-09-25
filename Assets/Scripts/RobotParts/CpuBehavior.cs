@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+using System.Linq;
 
 //
 // set the cpu blinker to on
@@ -14,12 +16,15 @@ public class CpuBehavior : MonoBehaviour, ITickable
 {
 
     private float Wait = 0;
+    private bool Called = false;
 
     private Rogram rogram;
 
     private int index = 0;
 
     private Dictionary<string, Register> registers = new Dictionary<string, Register>();
+
+    private Dictionary<string, SubRoutine> subs = new Dictionary<string, SubRoutine>();
 
     private void Start()
     {
@@ -35,9 +40,14 @@ public class CpuBehavior : MonoBehaviour, ITickable
             .Register(this);
     }
 
+    private int ticks = 0;
+
     // Update is called once per frame
     public void Tick()
     {
+        Debug.Log(this.ticks++);
+
+        if (this.Called) return;
         if (this.Wait > 0)
         {
             this.Wait--;
@@ -61,12 +71,20 @@ public class CpuBehavior : MonoBehaviour, ITickable
                     var dest = this.registers[mov.Dest.Register];
                     dest.Value = src;
                     break;
+                case RogramOpName.call:
+                    Debug.Log("---- CALL");
+                    var call = (CallOp)op;
+                    var args = call.Args.Select(arg => this.GetValue(arg)).ToArray();
+                    var fn = this.subs[call.Sub.Register].Fn;
+                    this.Called = true;
+                    fn(args, this.Callback);
+                    break;
                 default:
                     Debug.Log($"Invalid Op {op}");
                     break;
             }
 
-            this.index = (this.index + 1) % rogram.ops.Length;
+            this.index = this.index + 1;
         }
     }
 
@@ -74,6 +92,12 @@ public class CpuBehavior : MonoBehaviour, ITickable
         var ledOff = this.registers["led"].Value == 0;
         var ledColor = ledOff ? Color.gray : Color.red;
         this.GetComponent<MeshRenderer>().material.color = ledColor;
+    }
+
+    private void Callback()
+    {
+        Debug.Log("---- CALLBACK");
+        this.Called = false;
     }
 
     private int GetValue(IRogramOpArg arg)
@@ -87,7 +111,7 @@ public class CpuBehavior : MonoBehaviour, ITickable
             return this.registers[((RogramRegisterArg)arg).Register].Value;
         }
     }
-
+    
     public void Load(Rogram rogram)
     {
         this.index = 0;
@@ -99,5 +123,14 @@ public class CpuBehavior : MonoBehaviour, ITickable
     public void AddRegister(Register register)
     {
         this.registers.Add(register.Name, register);
+    }
+
+    public void AddSubroutine(SubRoutine sub)
+    {
+        if (!this.subs.ContainsKey(sub.Name))
+            this.subs.Add(sub.Name, sub);
+
+        if (!this.subs.ContainsKey(sub.FullName))
+            this.subs.Add(sub.FullName, sub);
     }
 }
