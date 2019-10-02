@@ -12,6 +12,10 @@ public class GameManager : MonoBehaviour
 
     private List<ITickable> tickables = new List<ITickable>();
 
+    public Grid grid;
+
+    
+
     public void Start()
     {
         this.StartCoroutine(this.UpdateCircuits());

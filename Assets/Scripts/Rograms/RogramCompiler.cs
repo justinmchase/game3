@@ -152,7 +152,10 @@ public class RogramCompiler
         switch (state.Peek())
         {
             case State.Arg:
+                ops.Add(this.ParseOp(name, args));
+                break;
             case State.Identifier:
+                args.Add(new RogramRegisterArg { Register = identifier });
                 ops.Add(this.ParseOp(name, args));
                 break;
         }

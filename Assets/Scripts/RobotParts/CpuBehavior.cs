@@ -45,8 +45,6 @@ public class CpuBehavior : MonoBehaviour, ITickable
     // Update is called once per frame
     public void Tick()
     {
-        Debug.Log(this.ticks++);
-
         if (this.Called) return;
         if (this.Wait > 0)
         {
