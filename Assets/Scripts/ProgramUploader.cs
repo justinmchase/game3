@@ -10,11 +10,12 @@ public class ProgramUploader : MonoBehaviour
 
     private RogramCompiler compiler = new RogramCompiler();
 
-    // Update is called once per frame
-    void Update()
+    void Start()
     {
-
-        
+        this.Code.text = "" +
+            "call move_forward 2\n" +
+            "call water"
+        ;
     }
 
     public void OnUpload()

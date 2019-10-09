@@ -8,18 +8,9 @@ using UnityEngine;
 
 public static class Extensions
 {
-    public static IEnumerable<Transform> GetChildren(this Transform t)
-    {
-        for(int i = 0; i < t.childCount; i++)
-        {
-            yield return t.GetChild(i);
-        }
-    }
+    private const float TILE_SIZE = 2.0f;
 
-    public static Vector3 GetForwardLocation(this Transform t)
-    {
-        return t.position + t.forward * 2f;
-    }
+    private const float TILE_TEST_RADIUS = 1.5f;
 
     public static IEnumerable<Transform> GetThingsInFront(this MonoBehaviour go)
     {
@@ -29,10 +20,34 @@ public static class Extensions
         return p
             .transform
             .GetChildren()
-            .Where(c => Vector3.Distance(c.position, location) < 2);
+            .Where(c => Vector3.Distance(c.position, location) < TILE_TEST_RADIUS);
+    }
+    
+    public static IEnumerable<Transform> GetThingsAt(this MonoBehaviour go)
+    {
+        var t = go.transform;
+        var p = go.GetComponentInParent<Grid>();
+        var location = t.position;
+        return p
+            .transform
+            .GetChildren()
+            .Where(c => Vector3.Distance(c.position, location) < TILE_TEST_RADIUS);
     }
 
-    public static IEnumerable<T> GetComponent<T>(this IEnumerable<Transform> gameObjects)
+    public static Vector3 GetForwardLocation(this Transform t)
+    {
+        return t.position + t.forward * TILE_SIZE;
+    }
+
+    public static IEnumerable<Transform> GetChildren(this Transform t)
+    {
+        for (int i = 0; i < t.childCount; i++)
+        {
+            yield return t.GetChild(i);
+        }
+    }
+
+    public static IEnumerable<T> GetComponents<T>(this IEnumerable<Transform> gameObjects)
         where T: MonoBehaviour
     {
         return gameObjects.Select(go => go.GetComponent<T>()).Where(go => go != null);
