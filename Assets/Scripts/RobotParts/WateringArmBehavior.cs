@@ -56,11 +56,6 @@ public class WateringArmBehavior : MonoBehaviour
         this.wateringCallback = callback;
 
         GameObject.Instantiate(this.waterParticles, this.emitLocation);
-
-        this.robot
-            .GetThingsInFront()
-            .GetComponent<WaterableBehavior>()
-            .ForEach(w => w.IsWet = true);
     }
 
     // Update is called once per frame
@@ -71,6 +66,12 @@ public class WateringArmBehavior : MonoBehaviour
             this.timeWatered += Time.deltaTime;
             if (this.timeWatered >= this.WateringTime)
             {
+                // Mark as watered
+                this.robot
+                    .GetThingsInFront()
+                    .GetComponents<BlockBehavior>()
+                    .ForEach(w => w.Water());
+
                 this.wateringCallback();
                 this.wateringCallback = null;
             }

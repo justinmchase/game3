@@ -5,16 +5,25 @@ using UnityEngine;
 public class BlockBehavior : MonoBehaviour
 {
 
+    private bool isWet = false;
+    public bool IsWet {  get { return this.isWet; } }
 
-    // Start is called before the first frame update
-    void Start()
+    public Material Default;
+    public Material Wet;
+
+    private Renderer _renderer;
+
+    public void Water()
     {
-        
+        this.isWet = true;
+        if (this.Wet != null)
+        {
+            this._renderer.material = this.Wet;
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    void Start()
     {
-        
+        this._renderer = this.GetComponent<Renderer>();
     }
 }

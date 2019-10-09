@@ -14,8 +14,6 @@ public class GameManager : MonoBehaviour
 
     public Grid grid;
 
-    
-
     public void Start()
     {
         this.StartCoroutine(this.UpdateCircuits());

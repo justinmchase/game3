@@ -5,17 +5,5 @@ using UnityEngine;
 public class WaterableBehavior : MonoBehaviour
 {
 
-    public bool IsWet = false;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
