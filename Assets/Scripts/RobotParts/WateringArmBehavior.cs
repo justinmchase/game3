@@ -41,13 +41,6 @@ public class WateringArmBehavior : MonoBehaviour
 
     }
 
-
-    Vector3 DirectionToCellDirection(Grid g, Vector3 v)
-    {
-        var v2 = this.game.grid.WorldToCell(v);
-        return new Vector3(v2.x * g.cellSize.x, v2.y * g.cellSize.y, v2.z * g.cellSize.z);
-    }
-
     void Water(int[] args, Action callback)
     {
         this.waterParticles.gameObject.SetActive(true);

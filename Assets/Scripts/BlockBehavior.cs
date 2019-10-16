@@ -22,6 +22,16 @@ public class BlockBehavior : MonoBehaviour
         }
     }
 
+
+    public void AbsorbWater()
+    {
+        this.isWet = false;
+        if (this.Default != null)
+        {
+            this._renderer.material = this.Default;
+        }
+    }
+
     void Start()
     {
         this._renderer = this.GetComponent<Renderer>();
